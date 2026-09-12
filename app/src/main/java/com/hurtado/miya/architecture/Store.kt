@@ -60,6 +60,21 @@ sealed interface Effect<out Action> {
 }
 
 /**
+ * Lifts a child reducer's effect into a parent's action space, mirroring the action-embedding
+ * TCA does automatically (via case paths) when composing reducers with `.ifLet`/`forEach`. Used
+ * whenever a parent reducer (e.g. `MediaPreviewReducer`) delegates a slice of state to a child
+ * reducer (e.g. `PhotoPreviewReducer`) and needs to re-wrap the child's effect actions.
+ */
+fun <A, B> Effect<A>.map(transform: (A) -> B): Effect<B> = when (this) {
+    is Effect.None -> Effect.None
+    is Effect.Cancel -> this
+    is Effect.Run -> Effect.Run(id = id, cancelInFlight = cancelInFlight) { send ->
+        block { a -> send(transform(a)) }
+    }
+    is Effect.Merge -> Effect.Merge(effects.map { it.map(transform) })
+}
+
+/**
  * Holds [State] as a [StateFlow] and dispatches [Action]s through a [Reducer], running any
  * returned [Effect] on [scope]. Mirrors TCA's `Store<State, Action>` minus the child-scoping
  * machinery (`scope(state:action:)`) — features here compose by exposing plain child
