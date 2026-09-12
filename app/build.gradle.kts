@@ -38,13 +38,29 @@ android {
         ?: System.getenv("MIYA_SERVER_URL")
         ?: "https://192.168.1.183:8000"
 
+    // Mirrors iOS's MiyaGoogleClientID (root Info.plist) — empty until a real Android OAuth
+    // client id is registered in Google Cloud Console for this applicationId/signing cert. With
+    // it empty, sign-in falls back to fixture mode (see di/AuthModule.kt) exactly like a missing
+    // MIYA_SERVER_URL does for HomeClient.
+    val googleClientId = (project.findProperty("MIYA_GOOGLE_CLIENT_ID") as String?)
+        ?: System.getenv("MIYA_GOOGLE_CLIENT_ID")
+        ?: ""
+    // A plain custom scheme rather than iOS's reversed-client-id convention (an App Store URL
+    // scheme requirement Android has no equivalent for) — must match the intent-filter data in
+    // AndroidManifest.xml.
+    val oauthRedirectUri = "com.hurtado.miya.oauth://oauth2redirect"
+
     buildTypes {
         debug {
             buildConfigField("String", "MIYA_SERVER_URL", "\"$debugServerUrl\"")
+            buildConfigField("String", "MIYA_GOOGLE_CLIENT_ID", "\"$googleClientId\"")
+            buildConfigField("String", "MIYA_OAUTH_REDIRECT_URI", "\"$oauthRedirectUri\"")
         }
         release {
             isMinifyEnabled = false
             buildConfigField("String", "MIYA_SERVER_URL", "\"\"")
+            buildConfigField("String", "MIYA_GOOGLE_CLIENT_ID", "\"\"")
+            buildConfigField("String", "MIYA_OAUTH_REDIRECT_URI", "\"$oauthRedirectUri\"")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -88,6 +104,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     implementation(libs.apollo.runtime)
+    implementation(libs.okhttp)
 
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)

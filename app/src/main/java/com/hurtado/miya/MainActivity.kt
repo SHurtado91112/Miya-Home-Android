@@ -1,5 +1,6 @@
 package com.hurtado.miya
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -7,10 +8,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -21,6 +25,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.hurtado.miya.features.albumdetail.AlbumDetailScreen
+import com.hurtado.miya.features.app.AppAction
+import com.hurtado.miya.features.app.AppState
+import com.hurtado.miya.features.app.AppViewModel
 import com.hurtado.miya.features.authordetail.AuthorDetailScreen
 import com.hurtado.miya.features.home.HomeScreen
 import com.hurtado.miya.features.mediapreview.MEDIA_PREVIEW_BAR_HEIGHT
@@ -29,26 +36,72 @@ import com.hurtado.miya.features.mediapreview.MediaPreviewAction
 import com.hurtado.miya.features.mediapreview.MediaPreviewHost
 import com.hurtado.miya.features.mediapreview.MediaPreviewViewModel
 import com.hurtado.miya.features.sectiondetail.SectionDetailScreen
+import com.hurtado.miya.features.signin.SignInScreen
+import com.hurtado.miya.services.auth.OAuthRedirectBus
 import com.hurtado.miya.ui.theme.MiyaTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * Single Activity, Compose host — the Android analogue of `MiyaApp.swift`'s SwiftUI `App`
- * (there's no AppDelegate there either). Also the redirect target for the Stage 6 Google OAuth
- * custom-scheme intent filter declared in the manifest.
+ * (there's no AppDelegate there either). Also the redirect target for the Google OAuth
+ * custom-scheme intent filter declared in the manifest — [onCreate]/[onNewIntent] forward the
+ * redirect URI into [OAuthRedirectBus] for [com.hurtado.miya.services.auth.GoogleOAuthLauncher]
+ * to pick up.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var oauthRedirectBus: OAuthRedirectBus
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        forwardOAuthRedirect(intent)
         setContent {
             MiyaTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    MiyaNavHost()
+                    AppRoot()
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        forwardOAuthRedirect(intent)
+    }
+
+    private fun forwardOAuthRedirect(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme == "com.hurtado.miya.oauth") oauthRedirectBus.emit(data)
+    }
+}
+
+/**
+ * Root gate mirroring `AppView`: sign-in wall until there's a session, then Home. Restoring shows
+ * a spinner rather than flashing the sign-in button before the session read finishes.
+ */
+@Composable
+fun AppRoot(appViewModel: AppViewModel = hiltViewModel()) {
+    val state by appViewModel.store.state.collectAsState()
+    val store = appViewModel.store
+
+    LaunchedEffect(Unit) { store.send(AppAction.Appeared) }
+
+    when (val current = state) {
+        is AppState.Restoring -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+
+        is AppState.SignedOut -> SignInScreen(
+            onSignedIn = { profile -> store.send(AppAction.SignedIn(profile)) },
+        )
+
+        is AppState.SignedIn -> MiyaNavHost(
+            onSignOut = { store.send(AppAction.SignOutRequested) },
+        )
     }
 }
 
@@ -57,14 +110,16 @@ private fun authorRoute(id: String, name: String) = "author/${Uri.encode(id)}/${
 
 /**
  * Navigation graph mirroring `HomeFeature.Path` (`sectionDetail`, `albumDetail`,
- * `authorDetail`) plus the sign-in/home gate `AppFeature.State` owns on iOS. The
- * [MediaPreviewHost] overlay is composed alongside the [NavHost] (not inside it), so its
- * [MediaPreviewViewModel] is scoped to this composable's caller (the Activity) and survives
+ * `authorDetail`). The [MediaPreviewHost] overlay is composed alongside the [NavHost] (not
+ * inside it), so its [MediaPreviewViewModel] is scoped to this composable's caller and survives
  * pushing/popping the back stack underneath it, mirroring `@Presents var preview` living on
- * `HomeFeature.State` above the pushed detail screens. Stage 6 adds the sign-in route.
+ * `HomeFeature.State` above the pushed detail screens. Recomposed fresh (a new
+ * `ViewModelStoreOwner`) each time [AppRoot] switches to [AppState.SignedIn], so signing out and
+ * back in never leaks the previous session's `HomeViewModel`/`MediaPreviewViewModel` state —
+ * the Android equivalent of iOS destroying `HomeFeature.State` on sign-out.
  */
 @Composable
-fun MiyaNavHost(navController: NavHostController = rememberNavController()) {
+fun MiyaNavHost(onSignOut: () -> Unit, navController: NavHostController = rememberNavController()) {
     val mediaPreviewViewModel: MediaPreviewViewModel = hiltViewModel()
     val mediaPreviewStore = mediaPreviewViewModel.store
     val previewState by mediaPreviewStore.state.collectAsState()
@@ -89,7 +144,7 @@ fun MiyaNavHost(navController: NavHostController = rememberNavController()) {
                         mediaPreviewStore.send(MediaPreviewAction.OpenSong(item, siblings))
                     },
                     onOpenPhoto = { item -> mediaPreviewStore.send(MediaPreviewAction.OpenPhoto(item)) },
-                    onSignOut = { /* TODO(Stage 6): route back to sign-in */ },
+                    onSignOut = onSignOut,
                     bottomInset = bottomInset,
                 )
             }
