@@ -134,25 +134,6 @@ fun HomeScreen(
                                 )
                             }
                         }
-
-                        if (state.albums.isNotEmpty()) {
-                            item(key = "albums-header") {
-                                Text(
-                                    text = "Albums",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                )
-                            }
-                            item(key = "albums-grid") {
-                                com.hurtado.miya.views.AlbumCardGrid(
-                                    albums = state.albums,
-                                    onAlbumClick = { album ->
-                                        store.send(HomeAction.View.AlbumTapped(album.id))
-                                        onOpenAlbum(album.id)
-                                    },
-                                )
-                            }
-                        }
                     }
                 }
             }

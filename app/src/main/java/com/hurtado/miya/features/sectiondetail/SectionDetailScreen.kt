@@ -30,12 +30,14 @@ import com.hurtado.miya.features.home.HomeSectionItem
 import com.hurtado.miya.features.home.MediaKind
 import com.hurtado.miya.views.AuthorRow
 import com.hurtado.miya.views.DetailItemGrid
+import com.hurtado.miya.views.DetailTopBar
 import kotlinx.coroutines.delay
 
 /** Port of `SectionDetailView.swift`: full item list + debounced server search. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SectionDetailScreen(
+    onBack: () -> Unit,
     onOpenAlbum: (String) -> Unit,
     onOpenSong: (HomeSectionItem, List<HomeSectionItem>) -> Unit,
     onOpenPhoto: (HomeSectionItem) -> Unit,
@@ -55,7 +57,7 @@ fun SectionDetailScreen(
         }
     }
 
-    Scaffold { padding ->
+    Scaffold(topBar = { DetailTopBar(onBack = onBack) }) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

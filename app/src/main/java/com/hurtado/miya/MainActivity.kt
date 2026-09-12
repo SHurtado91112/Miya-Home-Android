@@ -154,6 +154,7 @@ fun MiyaNavHost(onSignOut: () -> Unit, navController: NavHostController = rememb
                 arguments = listOf(navArgument("sectionId") { type = NavType.StringType }),
             ) {
                 SectionDetailScreen(
+                    onBack = { navController.popBackStack() },
                     onOpenAlbum = { albumId -> navController.navigate("album/$albumId") },
                     onOpenSong = { item, siblings ->
                         mediaPreviewStore.send(MediaPreviewAction.OpenSong(item, siblings))
@@ -169,6 +170,7 @@ fun MiyaNavHost(onSignOut: () -> Unit, navController: NavHostController = rememb
                 arguments = listOf(navArgument("albumId") { type = NavType.StringType }),
             ) {
                 AlbumDetailScreen(
+                    onBack = { navController.popBackStack() },
                     onOpenSong = { item, siblings ->
                         mediaPreviewStore.send(MediaPreviewAction.OpenSong(item, siblings))
                     },
@@ -186,6 +188,7 @@ fun MiyaNavHost(onSignOut: () -> Unit, navController: NavHostController = rememb
                 ),
             ) {
                 AuthorDetailScreen(
+                    onBack = { navController.popBackStack() },
                     onOpenAlbum = { album -> navController.navigate("album/${album.id}") },
                     onOpenSong = { item, siblings ->
                         mediaPreviewStore.send(MediaPreviewAction.OpenSong(item, siblings))

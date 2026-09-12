@@ -22,10 +22,12 @@ import com.hurtado.miya.features.home.HomeSectionItem
 import com.hurtado.miya.features.home.MediaKind
 import com.hurtado.miya.views.AlbumCardGrid
 import com.hurtado.miya.views.DetailItemGrid
+import com.hurtado.miya.views.DetailTopBar
 
 /** Port of `AuthorDetailView.swift`. */
 @Composable
 fun AuthorDetailScreen(
+    onBack: () -> Unit,
     onOpenAlbum: (Album) -> Unit,
     onOpenSong: (HomeSectionItem, List<HomeSectionItem>) -> Unit,
     onOpenPhoto: (HomeSectionItem) -> Unit,
@@ -37,7 +39,7 @@ fun AuthorDetailScreen(
 
     LaunchedEffect(Unit) { store.send(AuthorDetailAction.View.Appeared) }
 
-    Scaffold { padding ->
+    Scaffold(topBar = { DetailTopBar(onBack = onBack) }) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

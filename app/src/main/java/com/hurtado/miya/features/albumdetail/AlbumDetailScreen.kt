@@ -26,10 +26,12 @@ import com.hurtado.miya.features.home.AuthorRef
 import com.hurtado.miya.features.home.HomeSectionItem
 import com.hurtado.miya.features.home.MediaKind
 import com.hurtado.miya.views.DetailItemGrid
+import com.hurtado.miya.views.DetailTopBar
 
 /** Port of `AlbumDetailView.swift`. */
 @Composable
 fun AlbumDetailScreen(
+    onBack: () -> Unit,
     onOpenSong: (HomeSectionItem, List<HomeSectionItem>) -> Unit,
     onOpenPhoto: (HomeSectionItem) -> Unit,
     onOpenAuthor: (AuthorRef) -> Unit,
@@ -39,7 +41,7 @@ fun AlbumDetailScreen(
     val state by viewModel.store.state.collectAsState()
     val store = viewModel.store
 
-    Scaffold { padding ->
+    Scaffold(topBar = { DetailTopBar(onBack = onBack) }) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
