@@ -1,0 +1,5 @@
+<resources>
+    <!-- Base application theme; Compose owns all real theming (ui/theme/Theme.kt). This just
+         needs to exist for the manifest and provide a splash-safe window background. -->
+    <style name="Theme.Miya" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

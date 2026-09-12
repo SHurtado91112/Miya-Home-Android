@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Placeholder "M" mark; swap for the real Miya app icon asset when available. -->
+    <path
+        android:fillColor="#F5F0E6"
+        android:pathData="M28,32 L40,32 L54,62 L68,32 L80,32 L80,76 L69,76 L69,50 L57,76 L51,76 L39,50 L39,76 L28,76 Z" />
+</vector>
