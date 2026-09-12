@@ -14,11 +14,11 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 /**
- * Binds [AuthClient] to the fixture implementation whenever no server or Google OAuth client id
- * is configured — mirrors iOS `RunMode.isFixtureMode` and the same rule `di/ClientsModule.kt`
- * follows for [com.hurtado.miya.services.HomeClient]. With real values configured (a reachable
- * MIYA_SERVER_URL and a Google Cloud-registered Android OAuth client id), flips to
- * [LiveAuthClient] automatically.
+ * Binds [AuthClient] to the fixture implementation whenever no server is configured — mirrors
+ * iOS `RunMode.isFixtureMode` exactly (keyed on `MIYA_SERVER_URL` alone; a missing Google client
+ * id is instead checked inside [LiveAuthClient.signInWithGoogle] itself, throwing
+ * [com.hurtado.miya.services.auth.AuthError.NotConfigured] the same way iOS's `signInWithGoogle`
+ * does) — the same rule `di/ClientsModule.kt` follows for [com.hurtado.miya.services.HomeClient].
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -38,9 +38,6 @@ object AuthModule {
 
     @Provides
     @Singleton
-    fun provideAuthClient(fixture: FixtureAuthClient, live: LiveAuthClient): AuthClient {
-        val isConfigured = BuildConfig.MIYA_SERVER_URL.isNotBlank() &&
-            BuildConfig.MIYA_GOOGLE_CLIENT_ID.isNotBlank()
-        return if (isConfigured) live else fixture
-    }
+    fun provideAuthClient(fixture: FixtureAuthClient, live: LiveAuthClient): AuthClient =
+        if (BuildConfig.MIYA_SERVER_URL.isNotBlank()) live else fixture
 }
