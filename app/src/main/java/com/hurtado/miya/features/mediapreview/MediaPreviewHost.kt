@@ -18,7 +18,8 @@ val MEDIA_PREVIEW_BAR_SPACING = 8.dp
 
 /**
  * Renders on top of [com.hurtado.miya.MiyaNavHost]'s content, mirrors `MediaPreviewView` (the
- * expanded sheet) + `MediaPreviewBarsView` (the docked mini-bar stack) together — Compose has no
+ * expanded sheet, shown for whichever of photo/song is at [MediaPreviewState.expandedKind]) +
+ * `MediaPreviewBarsView` (the docked mini-bar stack, photo above song) together — Compose has no
  * separate sheet-vs-overlay presentation layer to split them across the way iOS does.
  */
 @Composable
@@ -31,25 +32,48 @@ fun MediaPreviewHost(
     val store = viewModel.store
 
     val photo = state.photo
-    if (photo != null && photo.detent == PreviewDetent.LARGE) {
-        PhotoPreviewScreen(
-            state = photo,
-            onAction = { action ->
-                store.send(MediaPreviewAction.Photo(action))
-                when (action) {
-                    is PhotoPreviewAction.View.ViewAlbumTapped -> photo.item.albumID?.let(onOpenAlbum)
-                    is PhotoPreviewAction.View.AuthorTapped -> onOpenAuthor(action.author)
-                    else -> Unit
+    val song = state.song
+
+    when (state.expandedKind) {
+        MediaPreviewKind.PHOTO -> if (photo != null) {
+            PhotoPreviewScreen(
+                state = photo,
+                onAction = { action ->
+                    store.send(MediaPreviewAction.Photo(action))
+                    when (action) {
+                        is PhotoPreviewAction.View.ViewAlbumTapped -> photo.item.albumID?.let(onOpenAlbum)
+                        is PhotoPreviewAction.View.AuthorTapped -> onOpenAuthor(action.author)
+                        else -> Unit
+                    }
+                },
+            )
+        }
+
+        MediaPreviewKind.SONG -> if (song != null) {
+            SongPreviewScreen(
+                state = song,
+                onAction = { action ->
+                    store.send(MediaPreviewAction.Song(action))
+                    when (action) {
+                        is SongPreviewAction.View.ViewAlbumTapped -> song.item.albumID?.let(onOpenAlbum)
+                        is SongPreviewAction.View.AuthorTapped -> onOpenAuthor(action.author)
+                        else -> Unit
+                    }
+                },
+            )
+        }
+
+        null -> if (state.dockedKinds.isNotEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(MEDIA_PREVIEW_BAR_SPACING, Alignment.Bottom),
+            ) {
+                if (photo != null) {
+                    PhotoMiniBar(state = photo, onAction = { store.send(MediaPreviewAction.Photo(it)) })
                 }
-            },
-        )
-    } else if (state.dockedKinds.isNotEmpty()) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(MEDIA_PREVIEW_BAR_SPACING, Alignment.Bottom),
-        ) {
-            if (photo != null) {
-                PhotoMiniBar(state = photo, onAction = { store.send(MediaPreviewAction.Photo(it)) })
+                if (song != null) {
+                    SongMiniBar(state = song, onAction = { store.send(MediaPreviewAction.Song(it)) })
+                }
             }
         }
     }

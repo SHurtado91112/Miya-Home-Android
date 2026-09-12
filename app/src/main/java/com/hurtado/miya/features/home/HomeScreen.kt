@@ -29,22 +29,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hurtado.miya.views.SectionCardGrid
 
 /**
  * Root Home screen, port of `HomeView.swift`. `NavigationStack` + pull-to-refresh + account menu
- * → sign out. The bottom `safeAreaInset` reserved for the mini playback bar becomes a Stage 5
- * addition once `SongPreviewFeature`/`MediaPreviewFeature` exist; omitted for now.
+ * → sign out. [bottomInset] reserves space at the bottom for a collapsed media preview floating
+ * over this screen (mirrors the `safeAreaInset` in every iOS detail/home view), so the last row
+ * is never hidden behind the mini bar(s); `0.dp` when none are docked.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onOpenAlbum: (String) -> Unit,
     onOpenSectionDetail: (String) -> Unit,
-    onOpenSong: (HomeSectionItem) -> Unit,
+    onOpenSong: (HomeSectionItem, List<HomeSectionItem>) -> Unit,
     onOpenPhoto: (HomeSectionItem) -> Unit,
     onSignOut: () -> Unit,
+    bottomInset: Dp = 0.dp,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.store.state.collectAsState()
@@ -102,7 +105,10 @@ fun HomeScreen(
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(24.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                            top = 16.dp,
+                            bottom = 16.dp + bottomInset,
+                        ),
                     ) {
                         items(state.sections, key = { it.id }) { section ->
                             Column {
@@ -118,7 +124,7 @@ fun HomeScreen(
                                         when (item.kind) {
                                             MediaKind.ALBUM -> onOpenAlbum(item.id)
                                             MediaKind.PHOTO -> onOpenPhoto(item)
-                                            MediaKind.SONG -> onOpenSong(item)
+                                            MediaKind.SONG -> onOpenSong(item, section.items)
                                         }
                                     },
                                     onSeeAllClick = {

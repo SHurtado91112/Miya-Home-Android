@@ -23,6 +23,11 @@ sealed interface PhotoPreviewAction {
         data object ViewAlbumTapped : View
         data class AuthorTapped(val author: AuthorRef) : View
         data object ExpandTapped : View
+
+        /** Android-only addition: there's no drag-to-dismiss sheet gesture here like iOS's
+         * presentation detents, so the system back gesture/button minimizes to the mini bar
+         * instead of doing nothing. */
+        data object MinimizeTapped : View
     }
 
     sealed interface Delegate : PhotoPreviewAction {
@@ -59,6 +64,9 @@ class PhotoPreviewReducer @Inject constructor() : Reducer<PhotoPreviewState, Pho
 
         is PhotoPreviewAction.View.ExpandTapped ->
             state.copy(detent = PreviewDetent.LARGE) to Effect.none()
+
+        is PhotoPreviewAction.View.MinimizeTapped ->
+            state.copy(detent = PreviewDetent.MINI) to Effect.none()
 
         is PhotoPreviewAction.Delegate -> state to Effect.none()
     }

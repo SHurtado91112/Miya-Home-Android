@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hurtado.miya.features.home.AuthorRef
 import com.hurtado.miya.features.home.HomeSectionItem
@@ -36,9 +37,10 @@ import kotlinx.coroutines.delay
 @Composable
 fun SectionDetailScreen(
     onOpenAlbum: (String) -> Unit,
-    onOpenSong: (HomeSectionItem) -> Unit,
+    onOpenSong: (HomeSectionItem, List<HomeSectionItem>) -> Unit,
     onOpenPhoto: (HomeSectionItem) -> Unit,
     onOpenAuthor: (AuthorRef) -> Unit,
+    bottomInset: Dp = 0.dp,
     viewModel: SectionDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.store.state.collectAsState()
@@ -59,7 +61,7 @@ fun SectionDetailScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp + bottomInset),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(text = state.section.title, style = MaterialTheme.typography.displayMedium)
@@ -107,7 +109,7 @@ fun SectionDetailScreen(
                         when (item.kind) {
                             MediaKind.ALBUM -> onOpenAlbum(item.id)
                             MediaKind.PHOTO -> onOpenPhoto(item)
-                            MediaKind.SONG -> onOpenSong(item)
+                            MediaKind.SONG -> onOpenSong(item, state.displayedItems)
                         }
                     },
                     onReachedEnd = { store.send(SectionDetailAction.View.ReachedEnd) },

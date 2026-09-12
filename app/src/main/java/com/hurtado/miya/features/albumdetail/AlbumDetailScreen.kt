@@ -20,6 +20,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hurtado.miya.features.home.AuthorRef
 import com.hurtado.miya.features.home.HomeSectionItem
@@ -29,9 +30,10 @@ import com.hurtado.miya.views.DetailItemGrid
 /** Port of `AlbumDetailView.swift`. */
 @Composable
 fun AlbumDetailScreen(
-    onOpenSong: (HomeSectionItem) -> Unit,
+    onOpenSong: (HomeSectionItem, List<HomeSectionItem>) -> Unit,
     onOpenPhoto: (HomeSectionItem) -> Unit,
     onOpenAuthor: (AuthorRef) -> Unit,
+    bottomInset: Dp = 0.dp,
     viewModel: AlbumDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.store.state.collectAsState()
@@ -43,7 +45,7 @@ fun AlbumDetailScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp + bottomInset),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (state.isLoadingAlbum) {
@@ -88,7 +90,7 @@ fun AlbumDetailScreen(
                     store.send(AlbumDetailAction.View.ItemTapped(item.id))
                     when (item.kind) {
                         MediaKind.PHOTO -> onOpenPhoto(item)
-                        MediaKind.SONG -> onOpenSong(item)
+                        MediaKind.SONG -> onOpenSong(item, state.album.items)
                         MediaKind.ALBUM -> Unit // albums don't nest albums in this data model
                     }
                 },

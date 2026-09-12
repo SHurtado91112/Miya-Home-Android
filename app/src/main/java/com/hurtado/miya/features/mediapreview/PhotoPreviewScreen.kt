@@ -1,5 +1,6 @@
 package com.hurtado.miya.features.mediapreview
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -59,6 +60,8 @@ fun PhotoPreviewScreen(
 ) {
     var scale by remember(state.item.id) { mutableFloatStateOf(1f) }
     var offset by remember(state.item.id) { mutableStateOf(Offset.Zero) }
+
+    BackHandler { onAction(PhotoPreviewAction.View.MinimizeTapped) }
 
     Box(
         modifier = Modifier

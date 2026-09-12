@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -20,6 +23,8 @@ import androidx.navigation.navArgument
 import com.hurtado.miya.features.albumdetail.AlbumDetailScreen
 import com.hurtado.miya.features.authordetail.AuthorDetailScreen
 import com.hurtado.miya.features.home.HomeScreen
+import com.hurtado.miya.features.mediapreview.MEDIA_PREVIEW_BAR_HEIGHT
+import com.hurtado.miya.features.mediapreview.MEDIA_PREVIEW_BAR_SPACING
 import com.hurtado.miya.features.mediapreview.MediaPreviewAction
 import com.hurtado.miya.features.mediapreview.MediaPreviewHost
 import com.hurtado.miya.features.mediapreview.MediaPreviewViewModel
@@ -62,6 +67,17 @@ private fun authorRoute(id: String, name: String) = "author/${Uri.encode(id)}/${
 fun MiyaNavHost(navController: NavHostController = rememberNavController()) {
     val mediaPreviewViewModel: MediaPreviewViewModel = hiltViewModel()
     val mediaPreviewStore = mediaPreviewViewModel.store
+    val previewState by mediaPreviewStore.state.collectAsState()
+
+    // Space every scrolling screen reserves at the bottom so its last row is never hidden behind
+    // the docked mini bar(s) — mirrors the `safeAreaInset` each iOS detail/home view adds for
+    // `collapsedPreviewHeight`.
+    val dockedCount = previewState.dockedKinds.size
+    val bottomInset = if (dockedCount == 0) {
+        0.dp
+    } else {
+        MEDIA_PREVIEW_BAR_HEIGHT * dockedCount + MEDIA_PREVIEW_BAR_SPACING * (dockedCount - 1).coerceAtLeast(0)
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(navController = navController, startDestination = "home") {
@@ -69,9 +85,12 @@ fun MiyaNavHost(navController: NavHostController = rememberNavController()) {
                 HomeScreen(
                     onOpenAlbum = { albumId -> navController.navigate("album/$albumId") },
                     onOpenSectionDetail = { sectionId -> navController.navigate("section/$sectionId") },
-                    onOpenSong = { /* TODO(Stage 5): present SongPreview */ },
+                    onOpenSong = { item, siblings ->
+                        mediaPreviewStore.send(MediaPreviewAction.OpenSong(item, siblings))
+                    },
                     onOpenPhoto = { item -> mediaPreviewStore.send(MediaPreviewAction.OpenPhoto(item)) },
                     onSignOut = { /* TODO(Stage 6): route back to sign-in */ },
+                    bottomInset = bottomInset,
                 )
             }
 
@@ -81,9 +100,12 @@ fun MiyaNavHost(navController: NavHostController = rememberNavController()) {
             ) {
                 SectionDetailScreen(
                     onOpenAlbum = { albumId -> navController.navigate("album/$albumId") },
-                    onOpenSong = { /* TODO(Stage 5) */ },
+                    onOpenSong = { item, siblings ->
+                        mediaPreviewStore.send(MediaPreviewAction.OpenSong(item, siblings))
+                    },
                     onOpenPhoto = { item -> mediaPreviewStore.send(MediaPreviewAction.OpenPhoto(item)) },
                     onOpenAuthor = { author -> navController.navigate(authorRoute(author.id, author.name)) },
+                    bottomInset = bottomInset,
                 )
             }
 
@@ -92,9 +114,12 @@ fun MiyaNavHost(navController: NavHostController = rememberNavController()) {
                 arguments = listOf(navArgument("albumId") { type = NavType.StringType }),
             ) {
                 AlbumDetailScreen(
-                    onOpenSong = { /* TODO(Stage 5) */ },
+                    onOpenSong = { item, siblings ->
+                        mediaPreviewStore.send(MediaPreviewAction.OpenSong(item, siblings))
+                    },
                     onOpenPhoto = { item -> mediaPreviewStore.send(MediaPreviewAction.OpenPhoto(item)) },
                     onOpenAuthor = { author -> navController.navigate(authorRoute(author.id, author.name)) },
+                    bottomInset = bottomInset,
                 )
             }
 
@@ -107,8 +132,11 @@ fun MiyaNavHost(navController: NavHostController = rememberNavController()) {
             ) {
                 AuthorDetailScreen(
                     onOpenAlbum = { album -> navController.navigate("album/${album.id}") },
-                    onOpenSong = { /* TODO(Stage 5) */ },
+                    onOpenSong = { item, siblings ->
+                        mediaPreviewStore.send(MediaPreviewAction.OpenSong(item, siblings))
+                    },
                     onOpenPhoto = { item -> mediaPreviewStore.send(MediaPreviewAction.OpenPhoto(item)) },
+                    bottomInset = bottomInset,
                 )
             }
         }
