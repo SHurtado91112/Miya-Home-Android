@@ -1,5 +1,6 @@
 package com.hurtado.miya
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,10 +13,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.hurtado.miya.features.albumdetail.AlbumDetailScreen
+import com.hurtado.miya.features.authordetail.AuthorDetailScreen
 import com.hurtado.miya.features.home.HomeScreen
+import com.hurtado.miya.features.sectiondetail.SectionDetailScreen
 import com.hurtado.miya.ui.theme.MiyaTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -39,11 +45,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** Builds the `author/{id}/{name}` route, URL-encoding the name (mirrors passing an `AuthorRef` value directly on iOS). */
+private fun authorRoute(id: String, name: String) = "author/${Uri.encode(id)}/${Uri.encode(name)}"
+
 /**
  * Navigation graph mirroring `HomeFeature.Path` (`sectionDetail`, `albumDetail`,
- * `authorDetail`) plus the sign-in/home gate `AppFeature.State` owns on iOS. Stage 3 replaces
- * the detail placeholders with real `SectionDetailScreen`/`AlbumDetailScreen`/
- * `AuthorDetailScreen`; Stage 4/5 add the media preview overlay; Stage 6 adds the sign-in route.
+ * `authorDetail`) plus the sign-in/home gate `AppFeature.State` owns on iOS. Stage 4/5 add the
+ * media preview overlay; Stage 6 adds the sign-in route.
  */
 @Composable
 fun MiyaNavHost(navController: NavHostController = rememberNavController()) {
@@ -57,28 +65,42 @@ fun MiyaNavHost(navController: NavHostController = rememberNavController()) {
                 onSignOut = { /* TODO(Stage 6): route back to sign-in */ },
             )
         }
-        composable("section/{sectionId}") { backStackEntry ->
-            PlaceholderDetailScreen(
-                title = "Section: ${backStackEntry.arguments?.getString("sectionId")}",
-            )
-        }
-        composable("album/{albumId}") { backStackEntry ->
-            PlaceholderDetailScreen(
-                title = "Album: ${backStackEntry.arguments?.getString("albumId")}",
-            )
-        }
-        composable("author/{authorId}") { backStackEntry ->
-            PlaceholderDetailScreen(
-                title = "Author: ${backStackEntry.arguments?.getString("authorId")}",
-            )
-        }
-    }
-}
 
-/** Stand-in for the Stage 3 detail screens so navigation is exercisable end-to-end today. */
-@Composable
-private fun PlaceholderDetailScreen(title: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = "$title\n(Stage 3 will replace this)")
+        composable(
+            route = "section/{sectionId}",
+            arguments = listOf(navArgument("sectionId") { type = NavType.StringType }),
+        ) {
+            SectionDetailScreen(
+                onOpenAlbum = { albumId -> navController.navigate("album/$albumId") },
+                onOpenSong = { /* TODO(Stage 5) */ },
+                onOpenPhoto = { /* TODO(Stage 4) */ },
+                onOpenAuthor = { author -> navController.navigate(authorRoute(author.id, author.name)) },
+            )
+        }
+
+        composable(
+            route = "album/{albumId}",
+            arguments = listOf(navArgument("albumId") { type = NavType.StringType }),
+        ) {
+            AlbumDetailScreen(
+                onOpenSong = { /* TODO(Stage 5) */ },
+                onOpenPhoto = { /* TODO(Stage 4) */ },
+                onOpenAuthor = { author -> navController.navigate(authorRoute(author.id, author.name)) },
+            )
+        }
+
+        composable(
+            route = "author/{authorId}/{authorName}",
+            arguments = listOf(
+                navArgument("authorId") { type = NavType.StringType },
+                navArgument("authorName") { type = NavType.StringType },
+            ),
+        ) {
+            AuthorDetailScreen(
+                onOpenAlbum = { album -> navController.navigate("album/${album.id}") },
+                onOpenSong = { /* TODO(Stage 5) */ },
+                onOpenPhoto = { /* TODO(Stage 4) */ },
+            )
+        }
     }
 }
